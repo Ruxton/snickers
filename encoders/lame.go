@@ -12,6 +12,7 @@ import (
 	"github.com/quizlet/lame"
 
 	"github.com/snickers/snickers/db"
+	"github.com/snickers/snickers/types"
 )
 
 func LAMEEncode(logger lager.Logger, dbInstance db.Storage, jobID string) error {
@@ -58,27 +59,26 @@ func LAMEEncode(logger lager.Logger, dbInstance db.Storage, jobID string) error 
 	}
 
 	if job.Preset.Audio.Bitrate != "" {
-    if job.Preset.RateControl == "vbr" {
-      re := regexp.MustCompile("v([0-9])")
-  		matched := re.FindStringSubmatch(job.Preset.Audio.Bitrate)
+		if job.Preset.RateControl == "vbr" {
+			re := regexp.MustCompile("v([0-9])")
+			matched := re.FindStringSubmatch(job.Preset.Audio.Bitrate)
 
-  		if len(matched) == 2 {
-  			i, err := strconv.Atoi(matched[1])
-  			if err == nil {
-  				log.Info("set-vbr-quality", lager.Data{"quality": i})
-  				wr.Encoder.SetVBRQuality(i)
-  				wr.Encoder.SetVBR(lame.VBR_DEFAULT)
-  			}
-  		}
-    }
-    else {
-      i, err := strconv.Atoi(job.Preset.Audio.Bitrate)
-      if err == nil {
-        wr.Encoder.SetBitrate(i)
-      }
-    }
+			if len(matched) == 2 {
+				i, err := strconv.Atoi(matched[1])
+				if err == nil {
+					log.Info("set-vbr-quality", lager.Data{"quality": i})
+					wr.Encoder.SetVBRQuality(i)
+					wr.Encoder.SetVBR(lame.VBR_DEFAULT)
+				}
+			}
+		} else {
+			i, err := strconv.Atoi(job.Preset.Audio.Bitrate)
+			if err == nil {
+				wr.Encoder.SetBitrate(i)
+			}
+		}
 	}
-  
+
 	if job.Preset.Audio.Quality != "" {
 		i, err := strconv.Atoi(job.Preset.Audio.Quality)
 		if err == nil {
