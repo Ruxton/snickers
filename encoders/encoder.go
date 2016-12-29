@@ -16,5 +16,8 @@ func GetEncodeFunc(job types.Job) EncodeFunc {
 	if job.Preset.Container == "m3u8" {
 		return HLSEncode
 	}
+	if job.Preset.Container == "mp3" {
+		return LAMEEncode
+	}
 	return FFMPEGEncode
 }

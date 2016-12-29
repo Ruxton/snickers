@@ -25,6 +25,9 @@ type VideoPreset struct {
 
 // AudioPreset define the set of parameters for audio on a given preset
 type AudioPreset struct {
-	Codec   string `json:"codec,omitempty"`
-	Bitrate string `json:"bitrate,omitempty"`
+	Codec      string `json:"codec,omitempty"`
+	Bitrate    string `json:"bitrate,omitempty"`
+	Quality    string `json:"quality,omitempty"`
+	SampleRate int    `json:"quality,omitempty"` //in Hz
+	Mode       string `json:"mode,omitempty"`    // STEREO/JOINT-STEREO/MONO
 }
