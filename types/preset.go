@@ -30,4 +30,6 @@ type AudioPreset struct {
 	Quality    string `json:"quality,omitempty"`
 	SampleRate int    `json:"quality,omitempty"` //in Hz
 	Mode       string `json:"mode,omitempty"`    // STEREO/JOINT-STEREO/MONO
+	Channels   int    `json:"channels,omitempty"`
+	Bitdepth   int    `json:"bitdepth,omitempty"`
 }
