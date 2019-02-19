@@ -29,9 +29,9 @@ func FLACEncode(logger lager.Logger, dbInstance db.Storage, jobID string) error 
 	job.Progress = "0%"
 	dbInstance.UpdateJob(job.ID, job)
 
-	channels := job.Presets.Audio.Channels
-	bitdepth := job.Presets.Audio.Bitdepth
-	samplerate := job.Presets.Audio.Samplerate
+	channels := job.Preset.Audio.Channels
+	bitdepth := job.Preset.Audio.Bitdepth
+	samplerate := job.Preset.Audio.SampleRate
 
 
 	enc, err := libflac.NewEncoder(job.LocalDestination, channels, bitdepth, samplerate)
