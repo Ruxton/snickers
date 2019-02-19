@@ -1,7 +1,6 @@
 package encoders
 
 import (
-	"fmt"
 	"os"
 
 	"code.cloudfoundry.org/lager"
@@ -30,8 +29,12 @@ func FLACEncode(logger lager.Logger, dbInstance db.Storage, jobID string) error 
 	job.Progress = "0%"
 	dbInstance.UpdateJob(job.ID, job)
 
-	enc, err := libflac.NewEncoder(job.LocalDestination, 2, 16, 44100)
-	fmt.Println("SETUP ENCODERWRITER")
+	channels := job.Presets.Audio.Channels
+	bitdepth := job.Presets.Audio.Bitdepth
+	samplerate := job.Presets.Audio.Samplerate
+
+
+	enc, err := libflac.NewEncoder(job.LocalDestination, channels, bitdepth, samplerate)
 
 	reader := wav.NewReader(f)
 
@@ -41,8 +44,8 @@ func FLACEncode(logger lager.Logger, dbInstance db.Storage, jobID string) error 
 	for {
 		samples, err = reader.ReadSamples()
 		if err != nil {
-			enc.WriteFrame(libflac.Frame{2, 16, 44100, out})
-			fmt.Printf("Read error - %s\n", err)
+			enc.WriteFrame(libflac.Frame{channels, bitdepth, samplerate, out})
+			log.Error("wav-read-error", err)
 			break
 		}
 		for _, sample := range samples {
@@ -50,7 +53,7 @@ func FLACEncode(logger lager.Logger, dbInstance db.Storage, jobID string) error 
 			out = append(out, int32(reader.IntValue(sample, 1)))
 		}
 		if count == 200 {
-			enc.WriteFrame(libflac.Frame{2, 16, 44100, out})
+			enc.WriteFrame(libflac.Frame{channels, bitdepth, samplerate, out})
 			out = nil
 			count = 0
 		} else {
@@ -59,7 +62,6 @@ func FLACEncode(logger lager.Logger, dbInstance db.Storage, jobID string) error 
 	}
 
 	enc.Close()
-	fmt.Println("CLOSING")
 
 	if job.Progress != "100%" {
 		job.Progress = "100%"

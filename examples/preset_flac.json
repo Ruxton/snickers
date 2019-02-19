@@ -1,0 +1,12 @@
+{
+  "name": "flac",
+  "description": "FLAC Audio Only",
+  "container": "flac",
+  "rateControl": "vbr",
+  "audio": {
+    "codec": "libflac",
+    "bitdepth": 16,
+    "samplerate": 44100,
+    "channels": 2
+  }
+}
