@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"io"
 
 	"code.cloudfoundry.org/lager"
 
@@ -27,7 +28,7 @@ func FFMPEGEncode(logger lager.Logger, dbInstance db.Storage, jobID string) erro
 		log.Error("input-failed", err)
 		return err
 	}
-	defer inputCtx.CloseInputAndRelease()
+	defer inputCtx.CloseInput()
 
 	// create output context
 	outputCtx, err := gmf.NewOutputCtx(job.LocalDestination)
@@ -35,7 +36,7 @@ func FFMPEGEncode(logger lager.Logger, dbInstance db.Storage, jobID string) erro
 		log.Error("output-failed", err)
 		return err
 	}
-	defer outputCtx.CloseOutputAndRelease()
+	defer outputCtx.CloseOutput()
 
 	job.Status = types.JobEncoding
 	job.Progress = "0%"
@@ -81,7 +82,7 @@ func processNewFrames(inputCtx *gmf.FmtCtx, outputCtx *gmf.FmtCtx, streamMap map
 		frame := gmf.NewFrame()
 
 		for {
-			if p, ready, _ := frame.FlushNewPacket(outputStream.CodecCtx()); ready {
+			if p, err := frame.Encode(outputStream.CodecCtx()); err == nil {
 				configurePacket(p, outputStream, frame)
 				if err := outputCtx.WritePacket(p); err != nil {
 					return err
@@ -101,8 +102,32 @@ func processNewFrames(inputCtx *gmf.FmtCtx, outputCtx *gmf.FmtCtx, streamMap map
 
 func processAllFramesAndUpdateJobProgress(inputCtx *gmf.FmtCtx, outputCtx *gmf.FmtCtx, streamMap map[int]int, job types.Job, dbInstance db.Storage, totalFrames float64) error {
 	var lastDelta int64
-	framesCount := float64(0)
-	for packet := range inputCtx.GetNewPackets() {
+
+	// framesCount := float64(0)
+
+	var (
+		packet     *gmf.Packet
+		frames     []*gmf.Frame
+		drain      int = -1
+		frameCount float64 = 0
+		err				 error
+	)
+
+	for {
+		if drain >= 0 {
+			break
+		}
+
+		packet,err = inputCtx.GetNextPacket()
+		if err != nil && err != io.EOF {
+			if packet != nil {
+				packet.Free()
+			}
+			break
+		} else if err != nil && packet == nil {
+			drain = 0
+		}
+
 		inputStream, err := getStream(inputCtx, packet.StreamIndex())
 		if err != nil {
 			return err
@@ -112,23 +137,27 @@ func processAllFramesAndUpdateJobProgress(inputCtx *gmf.FmtCtx, outputCtx *gmf.F
 			return err
 		}
 
-		for frame := range packet.Frames(inputStream.CodecCtx()) {
-			err := processFrame(inputStream, outputStream, packet, frame, outputCtx, &lastDelta)
-			if err != nil {
-				return err
-			}
-
-			outputStream.Pts++
-			framesCount++
-			percentage := fmt.Sprintf("%.2f", framesCount/totalFrames*100) + "%"
-			if percentage != job.Progress {
-				job.Progress = percentage
-				dbInstance.UpdateJob(job.ID, job)
-			}
+		// for frame := range packet.Frames(inputStream.CodecCtx()) {
+		frame, err := packet.Frames(inputStream.CodecCtx())
+		if err != nil {
+			panic(err)
+		}
+		err = processFrame(inputStream, outputStream, packet, frame, outputCtx, &lastDelta)
+		if err != nil {
+			return err
 		}
 
-		gmf.Release(packet)
+		outputStream.Pts++
+		frameCount++
+		percentage := fmt.Sprintf("%.2f", frameCount/totalFrames*100) + "%"
+		if percentage != job.Progress {
+			job.Progress = percentage
+			dbInstance.UpdateJob(job.ID, job)
+		}
 	}
+
+	gmf.Release(packet)
+	// }
 	return nil
 }
 
@@ -204,7 +233,8 @@ func processFrame(inputStream *gmf.Stream, outputStream *gmf.Stream, packet *gmf
 		frame.SetPts(outputStream.Pts)
 	}
 
-	if newPacket, ready, _ := frame.EncodeNewPacket(outputStream.CodecCtx()); ready {
+  newPacket, err := frame.Encode(outputStream.CodecCtx());
+  if err == nil {
 		configurePacket(newPacket, outputStream, frame)
 		if err := outputCtx.WritePacket(newPacket); err != nil {
 			return err
