@@ -1,0 +1,13 @@
+{
+  "name": "mp3_v0",
+  "description": "MP3 V0 for tests",
+  "container": "mp3",
+  "rateControl": "vbr",
+  "audio": {
+    "bitrate": "v0",
+    "codec": "mp3lame",
+    "quality": "0",
+    "samplerate": 44100,
+    "mode": "STEREO"
+  }
+}
