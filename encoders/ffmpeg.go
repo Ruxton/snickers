@@ -107,7 +107,6 @@ func processAllFramesAndUpdateJobProgress(inputCtx *gmf.FmtCtx, outputCtx *gmf.F
 
 	var (
 		packet     *gmf.Packet
-		frames     []*gmf.Frame
 		drain      int = -1
 		frameCount float64 = 0
 		err				 error
