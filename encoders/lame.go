@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/quizlet/lame"
+	"github.com/ruxton/go-lame"
 
 	"github.com/snickers/snickers/db"
 	"github.com/snickers/snickers/types"
